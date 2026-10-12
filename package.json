@@ -32,9 +32,10 @@
   },
   "scripts": {
     "prestart": "node scripts/check-env.js",
-    "pretunnel": "node scripts/check-env.js",
     "start": "expo start",
-    "tunnel": "expo start --tunnel",
+    "tunnel": "node scripts/start-cf-tunnel.js",
+    "tunnel:cf": "node scripts/start-cf-tunnel.js",
+    "tunnel:ngrok": "expo start --tunnel",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"

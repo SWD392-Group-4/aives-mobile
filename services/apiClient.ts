@@ -4,7 +4,7 @@ const RAW_BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').trim();
 
 if (!RAW_BASE_URL || RAW_BASE_URL.includes('localhost') || RAW_BASE_URL.includes('127.0.0.1')) {
   console.warn(
-    '⚠️ CẢNH BÁO: EXPO_PUBLIC_API_URL chưa được cấu hình Tunnel (ngrok / devtunnels). Vui lòng cấu hình URL Tunnel trong file .env!'
+    '⚠️ CẢNH BÁO: EXPO_PUBLIC_API_URL chưa được cấu hình Tunnel (Cloudflare / ngrok / devtunnels). Hãy chạy backend để tự động đồng bộ hoặc cấu hình trong .env!'
   );
 }
 

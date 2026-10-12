@@ -21,64 +21,36 @@ npm install
 ```
 
 ### Bước 2: Cấu hình biến môi trường (`.env`)
-> ⚠️ **LƯU Ý:** Mobile có script `check-env.js` tự động kiểm tra trước khi chạy. Nếu **quên tạo file `.env`** hoặc **để `localhost`/URL mẫu**, lệnh khởi chạy sẽ **dừng ngay lập tức** kèm hướng dẫn sửa lỗi.
+> ⚡ **TỰ ĐỘNG ĐỒNG BỘ:** Khi bạn khởi chạy Backend (`mvn spring-boot:run`), Backend sẽ tự động bật Cloudflare Tunnel và **tự động ghi `EXPO_PUBLIC_API_URL` vào file `.env` của mobile**. Bạn hầu như không cần làm gì thêm!
+> Script `check-env.js` cũng sẽ tự động đồng bộ từ file chia sẻ nếu phát hiện Backend đang chạy.
 
-1. Copy file cấu hình mẫu `.env.example`:
-   ```bash
-   cp .env.example .env
-   # Trên Windows PowerShell:
-   Copy-Item .env.example .env
-   ```
-2. Mở file `.env` và điền URL Backend theo **1 trong 2 Lựa chọn** bên dưới:
-   ```env
-   EXPO_PUBLIC_API_URL=https://<URL_BACKEND_CỦA_BẠN>/api
-   ```
+Nếu muốn cấu hình thủ công hoặc kiểm tra, file `.env` sẽ có dạng:
+```env
+EXPO_PUBLIC_API_URL=https://<subdomain-ngẫu-nhiên>.trycloudflare.com/api
+```
 
 ---
 
-## 🌐 2 Lựa chọn kết nối Backend khi test Mobile
+## 🌐 Khởi chạy Mobile với Cloudflare Tunnel
 
-Vì điện thoại là thiết bị riêng biệt nên **không thể gọi `localhost:8080` của máy tính**. Bạn chọn **1 trong 2 cách** sau:
+Khi test Mobile qua Expo Go, máy điện thoại cần kết nối với Expo Metro Bundler và Backend API. Hiện tại dự án đã chuyển toàn diện sang **Cloudflare Tunnel (Miễn phí, không cần tài khoản, ổn định)**:
 
-### ⭐ Lựa chọn 1: Dùng Port Forwarding của VS Code (Dễ nhất - Khuyên dùng)
-> Không cần cài thêm phần mềm gì, chỉ cần máy tính đang mở VS Code.
+### 🚀 Lệnh Khởi Chạy:
 
-1. Tại cửa sổ **VS Code** đang mở Backend, nhìn xuống bảng điều khiển dưới cùng cạnh tab Terminal, chọn tab **Ports**.
-2. Bấm **Forward a Port** ➔ Nhập `8080` (port Spring Boot).
-3. Chuột phải vào dòng port `8080` ➔ chọn **Port Visibility** ➔ **Public**.
-4. Copy link dạng `https://xxxx-8080.asse.devtunnels.ms` dán vào file `.env` của mobile:
-   ```env
-   EXPO_PUBLIC_API_URL=https://xxxx-8080.asse.devtunnels.ms/api
-   ```
-
----
-
-### ⭐ Lựa chọn 2: Dùng Ngrok (Nếu không dùng VS Code)
-> Dành cho ai dùng IntelliJ IDEA, Eclipse hoặc chạy backend ngoài terminal.
-
-1. Tải Ngrok tại [ngrok.com](https://ngrok.com) và cấu hình authtoken theo hướng dẫn của Ngrok.
-2. Mở một cửa sổ terminal riêng và chạy:
-   ```bash
-   ngrok http 8080
-   ```
-3. Copy link HTTPS công khai (VD: `https://xxxx.ngrok-free.app`) dán vào file `.env` của mobile:
-   ```env
-   EXPO_PUBLIC_API_URL=https://xxxx.ngrok-free.app/api
-   ```
-
----
-
-### Bước 3: Khởi chạy ứng dụng Mobile
-
-#### 🔹 Chế độ Khuyên dùng (Chạy qua Tunnel - Bất kỳ mạng Wi-Fi nào hoặc 4G/5G đều test được):
+#### 🔹 Chế độ Tunnel qua Cloudflare (Khuyên dùng - 4G/5G hoặc bất kỳ mạng Wi-Fi nào):
 ```bash
 npm run tunnel
 ```
-*Lần đầu tiên chạy lệnh này nếu terminal hỏi cài `@expo/ngrok`, gõ `y` rồi nhấn Enter.*
+*Lệnh này sẽ tự động mở Cloudflare Tunnel cho Expo Metro (port 8081), tạo URL công khai và in mã QR để quét qua app Expo Go.*
 
-#### 🔹 Chế độ Local thông thường (Chỉ dùng khi điện thoại & máy tính bắt chung 1 Wi-Fi):
+#### 🔹 Chế độ Local thông thường (Chỉ dùng khi máy tính & điện thoại chung 1 mạng Wi-Fi):
 ```bash
 npm start
+```
+
+#### 🔹 Chế độ Ngrok cũ (Dự phòng):
+```bash
+npm run tunnel:ngrok
 ```
 
 ---
