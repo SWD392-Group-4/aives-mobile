@@ -3,7 +3,32 @@ const path = require('path');
 
 const envPath = path.resolve(__dirname, '..', '.env');
 const examplePath = path.resolve(__dirname, '..', '.env.example');
-const sharedEndpointsPath = path.resolve(__dirname, '..', '..', 'tunnel-endpoints.json');
+
+const appEnv = process.env.APP_ENV || process.env.EXPO_PUBLIC_APP_ENV;
+const isDeploy =
+  appEnv === 'deploy' ||
+  appEnv === 'production' ||
+  process.env.EAS_BUILD === 'true' ||
+  process.env.CI === 'true';
+
+if (isDeploy) {
+  console.log('\n🚀 [AIVES Mobile] Đang ở chế độ DEPLOY/PRODUCTION: Bỏ qua kiểm tra file .env cục bộ.\n');
+  process.exit(0);
+}
+
+function parseEnvKeys(filePath) {
+  if (!fs.existsSync(filePath)) return new Set();
+  const content = fs.readFileSync(filePath, 'utf8');
+  const keys = new Set();
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line && !line.startsWith('#') && line.includes('=')) {
+      const key = line.substring(0, line.indexOf('=')).trim();
+      if (key) keys.add(key);
+    }
+  }
+  return keys;
+}
 
 console.log('\n🔍 [AIVES Mobile] Đang kiểm tra cấu hình biến môi trường...');
 
@@ -11,7 +36,7 @@ console.log('\n🔍 [AIVES Mobile] Đang kiểm tra cấu hình biến môi trư
 if (!fs.existsSync(envPath)) {
   if (fs.existsSync(examplePath)) {
     fs.copyFileSync(examplePath, envPath);
-    console.log('ℹ️ Đã tự động tạo aives-mobile/.env từ .env.example.');
+    console.log('ℹ️  Đã tự động tạo aives-mobile/.env từ .env.example.');
   } else {
     console.error('\n' + '='.repeat(75));
     console.error('❌ LỖI KHỞI ĐỘNG: KHÔNG TÌM THẤY FILE .env HOẶC .env.example TRONG aives-mobile!');
@@ -20,56 +45,45 @@ if (!fs.existsSync(envPath)) {
   }
 }
 
-// Kiểm tra xem có file tunnel-endpoints.json từ Backend vừa chạy không
-let autoSyncedFromBackend = false;
-let content = fs.readFileSync(envPath, 'utf8');
-let apiUrlLine = content.split('\n').find((line) => line.trim().startsWith('EXPO_PUBLIC_API_URL='));
-let apiUrl = apiUrlLine ? apiUrlLine.split('=')[1]?.trim() : '';
+// Kiểm tra đồng bộ key giữa .env và .env.example
+if (fs.existsSync(examplePath)) {
+  const exampleKeys = parseEnvKeys(examplePath);
+  const envKeys = parseEnvKeys(envPath);
 
-const isPlaceholderOrLocal = !apiUrl || apiUrl.includes('<ngrok-id>') || apiUrl.includes('<URL_BACKEND') || apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1');
+  const missingInEnv = [...exampleKeys].filter((k) => !envKeys.has(k));
+  if (missingInEnv.length > 0) {
+    console.error('\n' + '='.repeat(75));
+    console.error('❌ LỖI ĐỒNG BỘ: aives-mobile/.env thiếu biến so với .env.example!');
+    console.error('   Các biến cần bổ sung vào .env:');
+    missingInEnv.forEach((k) => console.error(`   - ${k}`));
+    console.error('\n👉 Vui lòng mở aives-mobile/.env.example và cập nhật vào .env của bạn!');
+    console.error('='.repeat(75) + '\n');
+    process.exit(1);
+  }
 
-if (isPlaceholderOrLocal && fs.existsSync(sharedEndpointsPath)) {
-  try {
-    const sharedData = JSON.parse(fs.readFileSync(sharedEndpointsPath, 'utf8'));
-    if (sharedData?.backend?.apiUrl) {
-      const newApiUrl = sharedData.backend.apiUrl;
-      let lines = content.split(/\r?\n/);
-      let updated = false;
-      lines = lines.map((line) => {
-        if (line.trim().startsWith('EXPO_PUBLIC_API_URL=')) {
-          updated = true;
-          return `EXPO_PUBLIC_API_URL=${newApiUrl}`;
-        }
-        return line;
-      });
-      if (!updated) {
-        lines.push(`EXPO_PUBLIC_API_URL=${newApiUrl}`);
-      }
-      fs.writeFileSync(envPath, lines.join('\n'), 'utf8');
-      apiUrl = newApiUrl;
-      autoSyncedFromBackend = true;
-      console.log(`⚡ [Auto-Sync] Đã tự động cập nhật Backend URL từ Cloudflare Tunnel: ${apiUrl}`);
-    }
-  } catch (err) {
-    // Bỏ qua lỗi parse shared file
+  const missingInExample = [...envKeys].filter((k) => !exampleKeys.has(k));
+  if (missingInExample.length > 0) {
+    console.warn('\n⚠️  CẢNH BÁO: Phát hiện biến mới trong aives-mobile/.env chưa có trong .env.example:');
+    missingInExample.forEach((k) => console.warn(`   - ${k}`));
+    console.warn('👉 Hãy nhớ cập nhật lại .env.example để chia sẻ cho cả team!\n');
   }
 }
 
-if (!apiUrl || apiUrl.includes('<') || apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1')) {
+// Kiểm tra biến EXPO_PUBLIC_API_URL
+const content = fs.readFileSync(envPath, 'utf8');
+const apiUrlLine = content.split('\n').find((line) => line.trim().startsWith('EXPO_PUBLIC_API_URL='));
+const apiUrl = apiUrlLine ? apiUrlLine.split('=')[1]?.trim() : '';
+
+if (!apiUrl || apiUrl.includes('<') || apiUrl.includes('>')) {
   console.error('\n' + '='.repeat(75));
   console.error('❌ LỖI CẤU HÌNH BIẾN MÔI TRƯỜNG TRONG aives-mobile/.env:');
-  console.error('   Biến EXPO_PUBLIC_API_URL chưa có URL công khai hợp lệ!');
+  console.error('   Biến EXPO_PUBLIC_API_URL chưa có URL backend hợp lệ!');
   console.error('   Giá trị hiện tại: ' + (apiUrl || '(Đang trống)'));
   console.error('\n👉 Hướng dẫn khắc phục:');
-  console.error('   1. Hãy khởi động Backend bằng lệnh: mvn spring-boot:run trong aives-backend.');
-  console.error('      Backend sẽ tự động bật Cloudflare Tunnel và cập nhật URL vào đây!');
-  console.error('   2. Hoặc cấu hình thủ công EXPO_PUBLIC_API_URL trong aives-mobile/.env');
+  console.error('   Hãy điền URL backend vào EXPO_PUBLIC_API_URL trong aives-mobile/.env');
+  console.error('   (Ví dụ: https://aives-backend-f40m.onrender.com/api)');
   console.error('='.repeat(75) + '\n');
   process.exit(1);
 }
 
-if (autoSyncedFromBackend) {
-  console.log('✅ Đã đồng bộ Backend Cloudflare Tunnel! API: ' + apiUrl + '\n');
-} else {
-  console.log('✅ Cấu hình .env hợp lệ! API Backend: ' + apiUrl + '\n');
-}
+console.log('✅ Cấu hình .env hợp lệ! API Backend: ' + apiUrl + '\n');
