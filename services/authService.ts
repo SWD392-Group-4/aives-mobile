@@ -40,6 +40,18 @@ export async function login({ email, password }: { email: string; password: stri
   return result;
 }
 
+export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
+  const result = await apiRequest<LoginResponse>('/auth/google', {
+    method: 'POST',
+    body: { idToken },
+    auth: false,
+  });
+  if (result?.accessToken) {
+    await setAccessToken(result.accessToken);
+  }
+  return result;
+}
+
 export async function sendRegistrationOtp(email: string): Promise<void> {
   await apiRequest('/auth/send-otp', {
     method: 'POST',

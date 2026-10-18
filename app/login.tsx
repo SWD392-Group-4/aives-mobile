@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,11 +11,15 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
 import { Theme } from '@/constants/Colors';
-import { login } from '@/services/authService';
+import { login, loginWithGoogle } from '@/services/authService';
 import { API_BASE_URL } from '@/services/apiClient';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -23,7 +27,89 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'STUDENT' | 'LECTURER'>('STUDENT');
+  const isProcessingGoogle = useRef(false);
+
+  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: googleClientId,
+    webClientId: googleClientId,
+    androidClientId: googleClientId,
+    iosClientId: googleClientId,
+  });
+
+  const processGoogleToken = async (idToken: string) => {
+    if (isProcessingGoogle.current) return;
+    isProcessingGoogle.current = true;
+    setGoogleLoading(true);
+    try {
+      const res = await loginWithGoogle(idToken);
+      Alert.alert(
+        'Đăng nhập Google thành công',
+        `Chào mừng ${res.user.fullName || res.user.email} (${res.user.role})!`,
+        [
+          {
+            text: 'Tiếp tục',
+            onPress: () => router.replace('/(tabs)'),
+          },
+        ]
+      );
+      if (Platform.OS === 'web') {
+        router.replace('/(tabs)');
+      }
+    } catch (err: any) {
+      Alert.alert(
+        'Đăng nhập Google thất bại',
+        err.message || 'Lỗi xác thực Google với hệ thống AIVES.'
+      );
+    } finally {
+      setGoogleLoading(false);
+      isProcessingGoogle.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const idToken = response.params?.id_token;
+      if (idToken && !isProcessingGoogle.current) {
+        processGoogleToken(idToken);
+      }
+    } else if (response?.type === 'error') {
+      Alert.alert(
+        'Đăng nhập Google thất bại',
+        response.error?.message || 'Có lỗi xảy ra khi xác thực với Google.'
+      );
+    }
+  }, [response]);
+
+  const handleGoogleLogin = async () => {
+    if (!request) {
+      Alert.alert('Thông báo', 'Đang kết nối dịch vụ Google Auth, vui lòng thử lại sau giây lát.');
+      return;
+    }
+
+    setGoogleLoading(true);
+    try {
+      const res = await promptAsync();
+      if (res?.type === 'success') {
+        const idToken = res.params?.id_token;
+        if (idToken) {
+          await processGoogleToken(idToken);
+        }
+      } else if (res?.type === 'error') {
+        Alert.alert(
+          'Đăng nhập Google thất bại',
+          res.error?.message || 'Đã xảy ra lỗi trong quá trình xác thực với Google.'
+        );
+      }
+    } catch (err: any) {
+      Alert.alert('Đăng nhập Google thất bại', err.message || 'Không thể mở cửa sổ đăng nhập Google.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -172,9 +258,9 @@ export default function LoginScreen() {
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.submitBtn, loading && { opacity: 0.8 }]}
+            style={[styles.submitBtn, (loading || googleLoading) && { opacity: 0.8 }]}
             onPress={handleLogin}
-            disabled={loading}
+            disabled={loading || googleLoading}
           >
             {loading ? (
               <ActivityIndicator color={Theme.white} />
@@ -182,6 +268,30 @@ export default function LoginScreen() {
               <View style={styles.btnRow}>
                 <Text style={styles.submitBtnText}>Gửi yêu cầu tới API</Text>
                 <MaterialIcons name="arrow-forward" size={18} color={Theme.white} />
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>HOẶC</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Google Sign-In Button */}
+          <TouchableOpacity
+            style={[styles.googleBtn, (loading || googleLoading) && { opacity: 0.8 }]}
+            onPress={handleGoogleLogin}
+            disabled={loading || googleLoading}
+            activeOpacity={0.8}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color={Theme.primary} />
+            ) : (
+              <View style={styles.googleBtnContent}>
+                <FontAwesome name="google" size={18} color="#EA4335" style={styles.googleIcon} />
+                <Text style={styles.googleBtnText}>Tiếp tục với Google</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -386,5 +496,49 @@ const styles = StyleSheet.create({
     color: Theme.primary,
     fontSize: 13,
     fontWeight: '700',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  googleBtn: {
+    backgroundColor: Theme.white,
+    height: 50,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  googleBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  googleIcon: {
+    marginRight: 2,
+  },
+  googleBtnText: {
+    color: '#1E293B',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
