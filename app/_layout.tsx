@@ -37,8 +37,15 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="register" options={{ headerShown: false }} />
+      <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+      <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+      <Stack.Screen name="device-check" options={{ headerShown: false }} />
       <Stack.Screen name="exam-room" options={{ headerShown: false }} />
+      <Stack.Screen name="exam-submitted" options={{ headerShown: false }} />
       <Stack.Screen name="results" options={{ headerShown: false }} />
+      <Stack.Screen name="result-detail" options={{ headerShown: false }} />
+      <Stack.Screen name="submit-appeal-modal" options={{ headerShown: false, presentation: 'modal' }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
     </Stack>
   );

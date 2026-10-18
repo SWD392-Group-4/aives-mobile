@@ -89,14 +89,41 @@ export default function StudentResultsScreen() {
                 {/* Appeal action button */}
                 <TouchableOpacity
                   style={styles.appealBtn}
-                  onPress={() => alert('Mở form yêu cầu phúc khảo cho câu này')}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/submit-appeal-modal',
+                      params: {
+                        attemptId: 'ATT_2026_SWD_094201',
+                        questionTitle: item.question,
+                        currentScore: item.score,
+                      },
+                    })
+                  }
                 >
-                  <MaterialIcons name="help-outline" size={14} color={Theme.textSecondary} />
-                  <Text style={styles.appealText}>Phúc khảo</Text>
+                  <MaterialIcons name="gavel" size={14} color={Theme.primary} />
+                  <Text style={[styles.appealText, { color: Theme.primary }]}>Phúc khảo</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ))}
+
+          {/* Action to view full rubric details */}
+          <TouchableOpacity
+            style={[styles.doneBtn, { backgroundColor: Theme.primaryLight, borderWidth: 1, borderColor: '#BFDBFE', marginBottom: 10 }]}
+            onPress={() =>
+              router.push({
+                pathname: '/result-detail',
+                params: {
+                  attemptId: 'ATT_2026_SWD_094201',
+                  examCode: 'AIVES_EXAM_2026_094201',
+                  examTitle: 'SWD392 - Kiểm tra vấn đáp Kiến trúc phần mềm',
+                  status: 'PUBLISHED',
+                },
+              })
+            }
+          >
+            <Text style={[styles.doneBtnText, { color: Theme.primary }]}>Xem chi tiết Rubric & Bằng chứng AI</Text>
+          </TouchableOpacity>
 
           {/* Action to go back home */}
           <TouchableOpacity

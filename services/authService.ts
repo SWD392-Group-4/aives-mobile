@@ -15,6 +15,19 @@ export interface LoginResponse {
   user: User;
 }
 
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  fullName: string;
+  otp: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  otpCode: string;
+  newPassword: string;
+}
+
 export async function login({ email, password }: { email: string; password: string }): Promise<LoginResponse> {
   const result = await apiRequest<LoginResponse>('/auth/login', {
     method: 'POST',
@@ -25,6 +38,38 @@ export async function login({ email, password }: { email: string; password: stri
     await setAccessToken(result.accessToken);
   }
   return result;
+}
+
+export async function sendRegistrationOtp(email: string): Promise<void> {
+  await apiRequest('/auth/send-otp', {
+    method: 'POST',
+    body: { email },
+    auth: false,
+  });
+}
+
+export async function register(data: RegisterRequest): Promise<User> {
+  return apiRequest<User>('/auth/register', {
+    method: 'POST',
+    body: data,
+    auth: false,
+  });
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  await apiRequest('/auth/forgot-password', {
+    method: 'POST',
+    body: { email },
+    auth: false,
+  });
+}
+
+export async function resetPassword(data: ResetPasswordRequest): Promise<void> {
+  await apiRequest('/auth/reset-password', {
+    method: 'POST',
+    body: data,
+    auth: false,
+  });
 }
 
 export async function getCurrentUser(): Promise<User> {

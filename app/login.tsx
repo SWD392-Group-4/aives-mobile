@@ -160,6 +160,16 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Forgot Password Link */}
+          <View style={styles.forgotPasswordRow}>
+            <TouchableOpacity
+              onPress={() => router.push('/forgot-password')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Submit Button */}
           <TouchableOpacity
             style={[styles.submitBtn, loading && { opacity: 0.8 }]}
@@ -174,6 +184,16 @@ export default function LoginScreen() {
                 <MaterialIcons name="arrow-forward" size={18} color={Theme.white} />
               </View>
             )}
+          </TouchableOpacity>
+
+          {/* Register Link */}
+          <TouchableOpacity
+            style={styles.registerLinkRow}
+            onPress={() => router.push('/register')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.registerPrompt}>Chưa có tài khoản? </Text>
+            <Text style={styles.registerHighlight}>Đăng ký ngay</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -340,5 +360,31 @@ const styles = StyleSheet.create({
     color: Theme.textSecondary,
     fontSize: 13,
     textDecorationLine: 'underline',
+  },
+  forgotPasswordRow: {
+    alignItems: 'flex-end',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  forgotPasswordText: {
+    color: Theme.primary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  registerLinkRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 14,
+    marginTop: 4,
+  },
+  registerPrompt: {
+    color: Theme.textSecondary,
+    fontSize: 13,
+  },
+  registerHighlight: {
+    color: Theme.primary,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
